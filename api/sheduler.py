@@ -1,15 +1,15 @@
 from datetime import datetime
 
-import asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
-from typing import List
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
-from db.connector import clickhouse_client, get_db
+from db.connector import get_db, get_ch_client
+from db.crud import insert_logs
 from db.models import LogEntryModel
 
+SECONDS_INTERVAL = 10
 
 scheduler = AsyncIOScheduler()
 
@@ -18,7 +18,7 @@ async def lifespan(app: FastAPI):
     """Управление жизненным циклом приложения"""
     scheduler.add_job(
         log_buffer_manager.send_buffered_logs,
-        trigger=IntervalTrigger(seconds=10),
+        trigger=IntervalTrigger(seconds=SECONDS_INTERVAL),
         id='send_logs',
         replace_existing=True
     )
@@ -34,34 +34,21 @@ async def lifespan(app: FastAPI):
 class LogBufferManager:
     def __init__(self):
         self.batch_size = 100
-        self.send_interval = 10000  # секунд
         self.is_running = False
 
     async def start(self):
-        """Запуск периодической отправки"""
+        """Запуск"""
         self.is_running = True
-        await clickhouse_client.connect()
 
-        await self.send_buffered_logs()
-
-        asyncio.create_task(self._periodic_sender())
-    
     async def stop(self):
-        """Остановка менеджера"""
+        """Остановка"""
         self.is_running = False
 
-        await self.send_buffered_logs()
-    
-    async def _periodic_sender(self):
-        """Периодическая отправка каждые 10 секунд"""
-        while self.is_running:
-            await asyncio.sleep(self.send_interval)
-            await self.send_buffered_logs()
-    
     async def send_buffered_logs(self):
         """Отправка накопленных логов"""
 
         session = next(get_db())
+        client = next(get_ch_client())
         count = 0
 
         try:
@@ -70,7 +57,7 @@ class LogBufferManager:
             if not unsent_logs:
                 return
 
-            success = await clickhouse_client.insert_logs(unsent_logs)
+            success = insert_logs(client, unsent_logs)
 
             if success:
                 log_ids = [log.id for log in unsent_logs]
@@ -88,6 +75,7 @@ class LogBufferManager:
                 session.commit()
         finally:
             session.close()
+            client.disconnect()
 
         return count
 

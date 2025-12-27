@@ -18,3 +18,19 @@ def create_log(db: Session, input_data: LogEntryDataIn, host: str):
 
 def get_count_logs(db: Session):
     return db.query(LogEntryModel).filter(LogEntryModel.is_sent == False).count()
+
+def insert_logs(client, logs):
+    """Вставка логов в ClickHouse"""
+    if not logs:
+        return False
+
+    data = [
+        log.get_dict_to_send()
+        for log in logs
+    ]
+
+    query = '''INSERT INTO logs_data VALUES'''
+    client.execute(query, data)
+    client.disconnect()
+
+    return True

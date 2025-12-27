@@ -41,38 +41,16 @@ CLICKHOUSE_PORT = int(CONFIG['CLICKHOUSE_PORT'])
 CLICKHOUSE_DB = CONFIG['CLICKHOUSE_NAME_DB']
 
 
-class ClickHouseClient:
-    def __init__(self):
-        self.client = None
-    
-    def get_client(self):
-        """Асинхронное подключение к ClickHouse"""
-        return Client(
-            host=CLICKHOUSE_HOST,
-            port=CLICKHOUSE_PORT,
-            database=CLICKHOUSE_DB,
-            user=CLICKHOUSE_USER,
-            password=CLICKHOUSE_PASSWORD
-        )
-    
-    async def insert_logs(self, logs):
-        """Вставка логов в ClickHouse"""
-        client = self.get_client()
+def get_ch_client():
+    client = Client(
+        host=CLICKHOUSE_HOST,
+        port=CLICKHOUSE_PORT,
+        database=CLICKHOUSE_DB,
+        user=CLICKHOUSE_USER,
+        password=CLICKHOUSE_PASSWORD
+    )
 
-        if not logs:
-            return False
-
-        data = [
-            log.get_dict_to_send()
-            for log in logs
-        ]
-        
-        query = '''INSERT INTO logs_data VALUES'''
-        loop = asyncio.get_event_loop()
-        await loop.run_in_executor(None, client.execute, query, data)
+    try:
+        yield client
+    finally:
         client.disconnect()
-
-        return True
-
-
-clickhouse_client = ClickHouseClient()

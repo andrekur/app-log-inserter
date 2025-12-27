@@ -1,9 +1,9 @@
-version: '3.6'
+version: '3.8'
 
 services:
   db:
     restart: always
-    container_name: postgres_app
+    container_name: cloud_postgres_app
     image: postgres:${DB_TAG}
     ports:
       - ${DB_PORT_IN}:${DB_PORT_OUT}
@@ -16,12 +16,14 @@ services:
 
   web:
     restart: always
-    container_name: web_app
+    container_name: cloud_web_app
     build:
       context: ../
       dockerfile: _CI/Dockerfile
       args:
         - HTTP_PROXY=${HTTP_PROXY}
+    ports:
+      - ${API_PORT_IN}:${API_PORT_OUT}
     volumes:
       - logs_data:/app/logs
     depends_on:
