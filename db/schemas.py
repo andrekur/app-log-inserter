@@ -10,5 +10,4 @@ class LogEntryDataIn(BaseModel):
 
 
 class LogEntryDataOut(BaseModel):
-    id: int
     timestamp: datetime

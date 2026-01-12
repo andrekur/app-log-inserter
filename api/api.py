@@ -3,6 +3,7 @@ from datetime import datetime
 from fastapi import FastAPI, Depends, status, Request
 
 from .sheduler import lifespan, log_buffer_manager
+from .helpers import get_server_host
 
 from db.connector import Session, get_db
 from db.schemas import LogEntryDataIn, LogEntryDataOut
@@ -30,7 +31,7 @@ def root(db: Session = Depends(get_db)):
 )
 def create_log(request: Request, log_data: LogEntryDataIn,
                 db: Session = Depends(get_db)):
-    return crud.create_log(db, input_data=log_data, host=request.client.host)
+    return crud.create_log(db, input_data=log_data, host=get_server_host())
 
 
 @app.post(
