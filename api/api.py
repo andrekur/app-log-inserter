@@ -20,7 +20,8 @@ def root(db: Session = Depends(get_db)):
         'status': 'ok',
         'service': 'ClickHouse Log Buffer',
         'buffered_logs': crud.get_count_logs(db),
-        'timestamp': datetime.now().isoformat()
+        'timestamp': datetime.now().isoformat(),
+        'server_host': get_server_host()
     }
 
 

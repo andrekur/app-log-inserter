@@ -9,7 +9,7 @@ from db.connector import get_db, get_ch_client
 from db.crud import insert_logs
 from db.models import LogEntryModel
 
-SECONDS_INTERVAL = 10
+SECONDS_INTERVAL = 30
 
 scheduler = AsyncIOScheduler()
 
